@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -8,9 +9,35 @@ from app.models.report import Report, ReportFormat
 from app.models.scan import Scan, ScanStatus
 from app.models.user import User
 from app.services.report_service import build_html_report, build_json_report
+from app.services.pdf_service import generate_pdf_report
 
 router = APIRouter()
 
+@router.get("/{scan_id}/pdf", response_class=Response)
+def download_pdf(
+    scan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    scan = db.scalar(
+        select(Scan)
+        .options(selectinload(Scan.findings), selectinload(Scan.target))
+        .where(Scan.id == scan_id, Scan.owner_id == current_user.id)
+    )
+    if scan is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+    if scan.status != ScanStatus.completed.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reports require a completed scan.")
+
+    pdf_bytes = generate_pdf_report(scan)
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="aegissec_report_{scan_id}.pdf"'
+        }
+    )
 
 @router.post("/{scan_id}/{report_format}", response_model=dict[str, int | str])
 def generate_report(

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { API_URL, loginOrRegisterAuto } from "../api/client";
+import { API_URL } from "../api/client";
+import { Download } from "lucide-react";
 
 export function Reports() {
   const [scans, setScans] = useState<any[]>([]);
@@ -9,12 +10,10 @@ export function Reports() {
     async function fetchScans() {
       try {
         let token = localStorage.getItem("aegis_access_token");
-        if (!token) token = await loginOrRegisterAuto();
 
         const res = await fetch(`${API_URL}/scans`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         if (res.ok) {
           const data = await res.json();
           setScans(data);
@@ -28,51 +27,101 @@ export function Reports() {
     fetchScans();
   }, []);
 
-  return (
-    <>
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-2xl font-semibold">Scan Reports & History</h1>
-        <p className="text-sm text-slate-600">Review historical scan results.</p>
-      </header>
+  const handleDownloadPdf = async (scanId: number) => {
+    try {
+      let token = localStorage.getItem("aegis_access_token");
+      const res = await fetch(`${API_URL}/reports/${scanId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to download PDF");
       
-      <div className="p-6">
-        <div className="rounded-md border border-slate-200 bg-white overflow-hidden">
-          <table className="min-w-full text-left text-sm whitespace-nowrap">
-            <thead className="uppercase tracking-wider border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th scope="col" className="px-6 py-4">Target</th>
-                <th scope="col" className="px-6 py-4">Status</th>
-                <th scope="col" className="px-6 py-4">Risk Score</th>
-                <th scope="col" className="px-6 py-4">Started At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center">Loading...</td></tr>
-              ) : scans.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center">No scans found.</td></tr>
-              ) : (
-                scans.map((scan) => (
-                  <tr key={scan.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium">{scan.target?.value || `Scan #${scan.id}`}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        scan.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        scan.status === 'running' ? 'bg-blue-100 text-blue-700' :
-                        scan.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {scan.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">{scan.risk_score !== null ? scan.risk_score : '-'}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(scan.created_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aegissec_report_${scanId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error(err);
+      alert("Could not download report. Ensure the scan is completed.");
+    }
+  };
+
+  if (loading) {
+    return <div className="p-4">Loading reports...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">
+          Scan Reports
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          History of all vulnerability assessments and their generated reports.
+        </p>
       </div>
-    </>
+
+      <div className="overflow-hidden rounded-lg bg-white shadow ring-1 ring-slate-200">
+        <table className="min-w-full divide-y divide-slate-300">
+          <thead className="bg-slate-50">
+            <tr>
+              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-slate-900 sm:pl-6">Scan Name</th>
+              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Target</th>
+              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Status</th>
+              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Risk Score</th>
+              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Date</th>
+              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 bg-white">
+            {scans.map((scan) => (
+              <tr key={scan.id}>
+                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">{scan.name}</td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500">{scan.target_id}</td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                    scan.status === 'completed' ? 'bg-green-50 text-green-700 ring-green-600/20' : 
+                    scan.status === 'failed' ? 'bg-red-50 text-red-700 ring-red-600/10' :
+                    'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
+                  }`}>
+                    {scan.status}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+                  {scan.status === 'completed' ? scan.risk_score : '-'}
+                </td>
+                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+                  {new Date(scan.created_at).toLocaleDateString()}
+                </td>
+                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  {scan.status === 'completed' && (
+                    <button 
+                      onClick={() => handleDownloadPdf(scan.id)}
+                      className="inline-flex items-center gap-x-1.5 text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                      PDF
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {scans.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                  No scan reports found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchDashboardStats, loginOrRegisterAuto } from "../api/client";
+import { fetchDashboardStats } from "../api/client";
 
 export function useDashboard() {
   const [stats, setStats] = useState<{
@@ -28,7 +28,6 @@ export function useDashboard() {
     let mounted = true;
     async function init() {
       try {
-        await loginOrRegisterAuto();
         if (mounted) await refreshStats();
       } catch (err: any) {
         if (mounted) setError(err.message);
