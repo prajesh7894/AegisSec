@@ -25,6 +25,14 @@ class Finding(Base):
     cvss: Mapped[float] = mapped_column(Float, default=0.0)
     description: Mapped[str] = mapped_column(Text)
     recommendation: Mapped[str] = mapped_column(Text)
+    
+    # Enterprise Metadata Fields
+    owasp: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    mitre_attack: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cwe: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    remediation_priority: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     scan = relationship("Scan", back_populates="findings")

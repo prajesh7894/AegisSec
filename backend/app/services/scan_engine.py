@@ -132,6 +132,11 @@ class ScanEngine:
                 cvss=5.3,
                 description="Port 80 is open. Unencrypted HTTP traffic is vulnerable to interception.",
                 recommendation="Redirect HTTP traffic to HTTPS (port 443) and implement HSTS.",
+                owasp="A02:2021-Cryptographic Failures",
+                mitre_attack="T1040: Network Sniffing",
+                cwe="CWE-319",
+                evidence="Port 80 responded to TCP SYN.",
+                remediation_priority="P2 - High",
             ))
             
         if 23 in open_ports:
@@ -142,6 +147,11 @@ class ScanEngine:
                 cvss=9.8,
                 description="Telnet (port 23) transmits data, including credentials, in plaintext.",
                 recommendation="Disable Telnet and use SSH (port 22) for remote administration.",
+                owasp="A02:2021-Cryptographic Failures",
+                mitre_attack="T1552.004: Cleartext Transmission",
+                cwe="CWE-319",
+                evidence="Port 23 responded to TCP SYN.",
+                remediation_priority="P1 - Critical",
             ))
             
         if 22 in open_ports:
@@ -152,6 +162,11 @@ class ScanEngine:
                 cvss=2.5,
                 description="SSH (port 22) is exposed to the internet. This could be subject to brute-force attacks.",
                 recommendation="Use key-based authentication, disable password login, and restrict access via firewall.",
+                owasp="A07:2021-Identification and Authentication Failures",
+                mitre_attack="T1110: Brute Force",
+                cwe="CWE-287",
+                evidence="Port 22 responded to TCP SYN. Banner: SSH-2.0-OpenSSH",
+                remediation_priority="P3 - Medium",
             ))
             
         if 3306 in open_ports or 5432 in open_ports:
@@ -162,6 +177,11 @@ class ScanEngine:
                 cvss=7.5,
                 description="A database port (MySQL/PostgreSQL) is publicly accessible.",
                 recommendation="Restrict database access to specific internal application servers via firewall rules.",
+                owasp="A05:2021-Security Misconfiguration",
+                mitre_attack="T1190: Exploit Public-Facing Application",
+                cwe="CWE-284",
+                evidence="Port 3306/5432 responded to TCP SYN.",
+                remediation_priority="P2 - High",
             ))
 
         if not open_ports:
@@ -172,6 +192,11 @@ class ScanEngine:
                 cvss=0.0,
                 description="The port scanner did not detect any open ports among the most common 15 ports.",
                 recommendation="Ensure all external-facing services are intended to be public.",
+                owasp=None,
+                mitre_attack=None,
+                cwe=None,
+                evidence="Scanner iterated over common 15 ports with no responses.",
+                remediation_priority="P4 - Low",
             ))
 
         return findings

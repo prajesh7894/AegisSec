@@ -1,79 +1,214 @@
 import io
+import uuid
 from datetime import UTC, datetime
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+)
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.piecharts import Pie
 
 from app.models.scan import Scan
+
+def add_header_footer(canvas, doc):
+    canvas.saveState()
+    # Footer
+    canvas.setFont('Helvetica', 9)
+    canvas.setFillColor(colors.gray)
+    canvas.drawString(inch, 0.5 * inch, f"AegisSec Enterprise Report | Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}")
+    canvas.drawRightString(7.5 * inch, 0.5 * inch, f"Page {doc.page}")
+    
+    # Header line
+    aegis_blue = colors.HexColor("#1e3a8a")
+    canvas.setStrokeColor(aegis_blue)
+    canvas.setLineWidth(1)
+    canvas.line(inch, 10.5 * inch, 7.5 * inch, 10.5 * inch)
+    canvas.restoreState()
 
 def generate_pdf_report(scan: Scan) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=18
+        rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72
     )
     
     styles = getSampleStyleSheet()
-    title_style = styles['Heading1']
-    h2_style = styles['Heading2']
-    normal_style = styles['Normal']
+    
+    # Custom Styles
+    brand_color = colors.HexColor("#1e3a8a")
+    critical_color = colors.HexColor("#dc2626")
+    high_color = colors.HexColor("#ea580c")
+    medium_color = colors.HexColor("#eab308")
+    low_color = colors.HexColor("#3b82f6")
+    info_color = colors.HexColor("#6b7280")
+    
+    styles.add(ParagraphStyle(name='TitlePage', parent=styles['Heading1'], fontSize=28, textColor=brand_color, alignment=1, spaceAfter=20))
+    styles.add(ParagraphStyle(name='SubtitlePage', parent=styles['Normal'], fontSize=16, textColor=colors.gray, alignment=1, spaceAfter=40))
+    styles.add(ParagraphStyle(name='SectionHeader', parent=styles['Heading2'], fontSize=18, textColor=brand_color, spaceBefore=20, spaceAfter=10))
+    styles.add(ParagraphStyle(name='Metadata', parent=styles['Normal'], fontSize=11, leading=16))
+    styles.add(ParagraphStyle(name='FindingTitle', parent=styles['Heading3'], fontSize=14, textColor=brand_color, spaceBefore=15, spaceAfter=6))
+    styles.add(ParagraphStyle(name='FindingLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10))
+    styles.add(ParagraphStyle(name='FindingValue', parent=styles['Normal'], fontSize=10, leading=14))
+    
+    # Use a custom style for evidence block since Preformatted isn't always ideal for wrapping
+    styles.add(ParagraphStyle(
+        name='EvidenceBlock', 
+        parent=styles['Normal'], 
+        fontName='Courier', 
+        fontSize=9, 
+        textColor=colors.darkblue, 
+        backColor=colors.whitesmoke,
+        leftIndent=10, 
+        rightIndent=10,
+        spaceBefore=4,
+        spaceAfter=4,
+        borderWidth=1,
+        borderColor=colors.lightgrey,
+        borderPadding=6
+    ))
     
     Story = []
     
-    # Title
-    Story.append(Paragraph(f"AegisSec Vulnerability Assessment", title_style))
-    Story.append(Spacer(1, 12))
+    # --- COVER PAGE ---
+    Story.append(Spacer(1, 2 * inch))
+    Story.append(Paragraph("AegisSec", styles['TitlePage']))
+    Story.append(Paragraph("Enterprise Security Assessment Report", styles['SubtitlePage']))
     
-    # Executive Summary
-    Story.append(Paragraph("Executive Summary", h2_style))
     target_val = scan.target.value if scan.target else "Unknown Target"
-    Story.append(Paragraph(f"Assessment for <b>{target_val}</b> ({scan.name}) completed with an overall risk score of <b>{scan.risk_score}/100</b>.", normal_style))
-    Story.append(Spacer(1, 12))
+    report_id = f"RPT-{uuid.uuid4().hex[:8].upper()}"
     
-    # Findings Summary Table
-    Story.append(Paragraph("Findings Summary", h2_style))
+    Story.append(Paragraph(f"<b>Target:</b> {target_val}", styles['Metadata']))
+    Story.append(Paragraph(f"<b>Scan Name:</b> {scan.name}", styles['Metadata']))
+    Story.append(Paragraph(f"<b>Scan ID:</b> {scan.id}", styles['Metadata']))
+    Story.append(Paragraph(f"<b>Report ID:</b> {report_id}", styles['Metadata']))
+    Story.append(Paragraph(f"<b>Generated On:</b> {datetime.now(UTC).strftime('%B %d, %Y - %H:%M:%S UTC')}", styles['Metadata']))
+    
+    Story.append(PageBreak())
+    
+    # --- EXECUTIVE DASHBOARD ---
+    Story.append(Paragraph("Executive Dashboard", styles['SectionHeader']))
+    Story.append(Paragraph(f"The automated assessment of <b>{target_val}</b> concluded with an overall Risk Score of <b>{scan.risk_score}/100</b>.", styles['Normal']))
+    Story.append(Spacer(1, 20))
+    
+    # Calculate Severity Distribution
+    sev_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     if scan.findings:
-        data = [['Severity', 'Title', 'CVSS']]
-        for finding in scan.findings:
-            data.append([finding.severity.upper(), finding.title, str(finding.cvss)])
+        for f in scan.findings:
+            sev = f.severity.lower()
+            if sev in sev_counts:
+                sev_counts[sev] += 1
+                
+    # Draw Pie Chart
+    has_findings = any(v > 0 for v in sev_counts.values())
+    if has_findings:
+        d = Drawing(400, 200)
+        pie = Pie()
+        pie.x = 125
+        pie.y = 25
+        pie.width = 150
+        pie.height = 150
+        pie.data = [
+            sev_counts["critical"], sev_counts["high"], 
+            sev_counts["medium"], sev_counts["low"], sev_counts["info"]
+        ]
+        pie.labels = ['Critical', 'High', 'Medium', 'Low', 'Info']
+        
+        pie.slices[0].fillColor = critical_color
+        pie.slices[1].fillColor = high_color
+        pie.slices[2].fillColor = medium_color
+        pie.slices[3].fillColor = low_color
+        pie.slices[4].fillColor = info_color
+        
+        for i, val in enumerate(pie.data):
+            if val == 0:
+                pie.labels[i] = ""
+                
+        d.add(pie)
+        Story.append(d)
+        Story.append(Spacer(1, 20))
+    
+    # --- FINDINGS SUMMARY TABLE ---
+    Story.append(Paragraph("Vulnerability Summary", styles['SectionHeader']))
+    if scan.findings:
+        data = [['Severity', 'Title', 'Priority', 'CVSS']]
+        for f in scan.findings:
+            data.append([
+                f.severity.upper(), 
+                Paragraph(f.title, styles['Normal']), 
+                f.remediation_priority or "-", 
+                str(f.cvss)
+            ])
             
-        t = Table(data, colWidths=[80, 300, 50])
+        t = Table(data, colWidths=[60, 250, 70, 40])
         t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), brand_color),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('BOTTOMPADDING', (0,0), (-1,0), 10),
+            ('TOPPADDING', (0,0), (-1,0), 10),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]))
         Story.append(t)
     else:
-        Story.append(Paragraph("No vulnerabilities discovered.", normal_style))
+        Story.append(Paragraph("No vulnerabilities discovered.", styles['Normal']))
         
-    Story.append(Spacer(1, 24))
+    Story.append(PageBreak())
     
-    # Detailed Findings
-    Story.append(Paragraph("Technical Details", h2_style))
-    for finding in scan.findings:
-        Story.append(Paragraph(f"<b>{finding.title}</b> ({finding.severity.upper()})", styles['Heading3']))
-        Story.append(Paragraph(f"<b>Description:</b> {finding.description}", normal_style))
-        Story.append(Spacer(1, 6))
-        Story.append(Paragraph(f"<b>Recommendation:</b> {finding.recommendation}", normal_style))
-        Story.append(Spacer(1, 12))
+    # --- DETAILED FINDINGS ---
+    Story.append(Paragraph("Detailed Technical Findings", styles['SectionHeader']))
+    
+    if not scan.findings:
+        Story.append(Paragraph("No findings to detail.", styles['Normal']))
         
-    # Appendix
-    Story.append(Spacer(1, 24))
-    Story.append(Paragraph("Appendix", h2_style))
-    Story.append(Paragraph(f"Generated by AegisSec AI Platform on {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}. Authorized use only.", normal_style))
+    for idx, f in enumerate(scan.findings, 1):
+        Story.append(Paragraph(f"{idx}. {f.title}", styles['FindingTitle']))
+        
+        # Metadata block for finding
+        meta_data = [
+            [Paragraph("<b>Severity:</b>", styles['FindingLabel']), Paragraph(f.severity.upper(), styles['FindingValue']),
+             Paragraph("<b>CVSS v3.1:</b>", styles['FindingLabel']), Paragraph(str(f.cvss), styles['FindingValue'])],
+             
+            [Paragraph("<b>Priority:</b>", styles['FindingLabel']), Paragraph(f.remediation_priority or "N/A", styles['FindingValue']),
+             Paragraph("<b>CWE:</b>", styles['FindingLabel']), Paragraph(f.cwe or "N/A", styles['FindingValue'])],
+             
+            [Paragraph("<b>OWASP:</b>", styles['FindingLabel']), Paragraph(f.owasp or "N/A", styles['FindingValue']),
+             Paragraph("<b>MITRE:</b>", styles['FindingLabel']), Paragraph(f.mitre_attack or "N/A", styles['FindingValue'])]
+        ]
+        
+        mt = Table(meta_data, colWidths=[60, 150, 60, 150])
+        mt.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+            ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+        Story.append(mt)
+        Story.append(Spacer(1, 10))
+        
+        Story.append(Paragraph("<b>Description:</b>", styles['FindingLabel']))
+        Story.append(Paragraph(f.description, styles['FindingValue']))
+        Story.append(Spacer(1, 8))
+        
+        if f.evidence:
+            Story.append(Paragraph("<b>Evidence:</b>", styles['FindingLabel']))
+            Story.append(Paragraph(f.evidence.replace("\n", "<br/>"), styles['EvidenceBlock']))
+            Story.append(Spacer(1, 8))
+            
+        Story.append(Paragraph("<b>Recommendation:</b>", styles['FindingLabel']))
+        Story.append(Paragraph(f.recommendation, styles['FindingValue']))
+        Story.append(Spacer(1, 20))
     
-    doc.build(Story)
+    # Build doc with header/footer
+    doc.build(Story, onFirstPage=add_header_footer, onLaterPages=add_header_footer)
+    
     pdf = buffer.getvalue()
     buffer.close()
     return pdf
