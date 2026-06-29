@@ -1,9 +1,5 @@
-let rawUrl = import.meta.env.VITE_API_URL;
-// If the environment variable is missing, relative ("/api"), or a placeholder, force the Railway URL.
-if (!rawUrl || !rawUrl.startsWith("http")) {
-  rawUrl = "https://aegissec-production.up.railway.app/api";
-}
-export const API_URL = rawUrl;
+// Hardcoded Railway Production URL to guarantee resolution
+export const API_URL = "https://aegissec-production.up.railway.app/api";
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("aegis_access_token");
