@@ -26,13 +26,13 @@ export async function authFetch(url: string, options: RequestInit = {}) {
 }
 
 export async function fetchDashboardStats() {
-  const res = await authFetch(`$ {API_URL}/dashboard`);
+  const res = await authFetch(`${API_URL}/dashboard`);
   if (!res.ok) throw new Error("Failed to fetch dashboard stats");
   return res.json();
 }
 
 export async function createScan(target: string) {
-  const res = await authFetch(`$ {API_URL}/scans`, {
+  const res = await authFetch(`${API_URL}/scans`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
