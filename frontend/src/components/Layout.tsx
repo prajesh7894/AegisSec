@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, Target, Settings, LogOut, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, FileText, Target, LogOut, ShieldAlert } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Assets & Targets", href: "/targets", icon: Target },
     { name: "Scan Reports", href: "/reports", icon: FileText },
-    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   return (

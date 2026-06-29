@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import auth, dashboard, logs, profile, reports, scans, settings as settings_router, users, targets as targets_router
+from app.api.routers import auth, dashboard, logs, profile, reports, scans, users, targets as targets_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.rate_limit import InMemoryRateLimitMiddleware
@@ -34,7 +34,6 @@ def create_app() -> FastAPI:
     app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
     app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
     app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
-    app.include_router(settings_router.router, prefix="/api/settings", tags=["settings"])
     app.include_router(logs.router, prefix="/api/logs", tags=["logs"])
 
     @app.get("/health", tags=["health"])
