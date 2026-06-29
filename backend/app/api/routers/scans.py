@@ -50,9 +50,9 @@ def create_scan(
 @router.get("", response_model=list[ScanRead])
 def list_scans(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[Scan]:
     if current_user.role == "admin":
-        statement = select(Scan).order_by(Scan.created_at.desc())
+        statement = select(Scan).options(selectinload(Scan.target)).order_by(Scan.created_at.desc())
     else:
-        statement = select(Scan).where(Scan.owner_id == current_user.id).order_by(Scan.created_at.desc())
+        statement = select(Scan).options(selectinload(Scan.target)).where(Scan.owner_id == current_user.id).order_by(Scan.created_at.desc())
     return list(db.scalars(statement).all())
 
 
@@ -60,7 +60,7 @@ def list_scans(current_user: User = Depends(get_current_user), db: Session = Dep
 def get_scan(scan_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Scan:
     scan = db.scalar(
         select(Scan)
-        .options(selectinload(Scan.findings))
+        .options(selectinload(Scan.findings), selectinload(Scan.target))
         .where(Scan.id == scan_id, Scan.owner_id == current_user.id)
     )
     if scan is None:

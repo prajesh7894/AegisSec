@@ -24,6 +24,7 @@ class ScanRead(BaseModel):
     progress: int
     current_step: str
     risk_score: int
+    target_value: str | None = None
     created_at: datetime
     completed_at: datetime | None
 

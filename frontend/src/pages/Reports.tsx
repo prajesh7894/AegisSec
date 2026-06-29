@@ -109,7 +109,7 @@ export function Reports() {
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-slate-700">
-                  {scan.target_id || "System Default"}
+                  {scan.target_value || "System Default"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ring-1 ring-inset shadow-sm ${

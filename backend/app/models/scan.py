@@ -36,6 +36,10 @@ class Scan(Base):
     reports = relationship("Report", back_populates="scan", cascade="all, delete-orphan")
     logs = relationship("ScanLog", back_populates="scan", cascade="all, delete-orphan")
 
+    @property
+    def target_value(self) -> str:
+        return self.target.value if self.target else "Unknown"
+
 
 class ScanLog(Base):
     __tablename__ = "scan_logs"
