@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { API_URL } from "../api/client";
+import { API_URL, authFetch } from "../api/client";
 import { Trash2, Plus } from "lucide-react";
 
 export function Targets() {
@@ -14,10 +14,7 @@ export function Targets() {
 
   async function fetchTargets() {
     try {
-      let token = localStorage.getItem("aegis_access_token");
-      const res = await fetch(`${API_URL}/targets`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await authFetch(`${API_URL}/targets`);
       if (res.ok) {
         const data = await res.json();
         setTargets(data);
@@ -35,12 +32,10 @@ export function Targets() {
     setSubmitting(true);
     
     try {
-      let token = localStorage.getItem("aegis_access_token");
-      const res = await fetch(`${API_URL}/targets`, {
+      const res = await authFetch(`${API_URL}/targets`, {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ value: newTarget.trim() })
       });
@@ -61,10 +56,8 @@ export function Targets() {
     if (!window.confirm("Are you sure you want to delete this asset?")) return;
     
     try {
-      let token = localStorage.getItem("aegis_access_token");
-      const res = await fetch(`${API_URL}/targets/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await authFetch(`${API_URL}/targets/${id}`, {
+        method: "DELETE"
       });
       if (res.ok) {
         fetchTargets();

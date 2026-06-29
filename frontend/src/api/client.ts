@@ -1,13 +1,11 @@
-export const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://aegissec-production.up.railway.app";
+export const API_URL = import.meta.env.VITE_API_URL || "https://aegissec-production.up.railway.app/api";
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("aegis_access_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function authFetch(url: string, options: RequestInit = {}) {
+export async function authFetch(url: string, options: RequestInit = {}) {
   let res = await fetch(url, {
     ...options,
     headers: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDashboard } from "../hooks/useDashboard";
-import { createScan } from "../api/client";
+import { createScan, API_URL } from "../api/client";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export function Dashboard() {
@@ -21,8 +21,12 @@ export function Dashboard() {
   useEffect(() => {
     if (!liveScan?.scan_id) return;
     
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/api/scans/${liveScan.scan_id}/ws`;
+    // API_URL might be "/api" or "https://aegissec.../api". Handle both.
+    const baseUrl = API_URL.startsWith("http") 
+      ? API_URL.replace(/^http/, "ws") 
+      : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${API_URL}`;
+    
+    const wsUrl = `${baseUrl}/scans/${liveScan.scan_id}/ws`;
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onmessage = (event) => {

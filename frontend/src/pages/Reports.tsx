@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { API_URL } from "../api/client";
+import { API_URL, authFetch } from "../api/client";
 import { Download } from "lucide-react";
 
 export function Reports() {
@@ -9,11 +9,7 @@ export function Reports() {
   useEffect(() => {
     async function fetchScans() {
       try {
-        let token = localStorage.getItem("aegis_access_token");
-
-        const res = await fetch(`${API_URL}/scans`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await authFetch(`${API_URL}/scans`);
         if (res.ok) {
           const data = await res.json();
           setScans(data);
@@ -29,10 +25,7 @@ export function Reports() {
 
   const handleDownloadPdf = async (scanId: number) => {
     try {
-      let token = localStorage.getItem("aegis_access_token");
-      const res = await fetch(`${API_URL}/reports/${scanId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await authFetch(`${API_URL}/reports/${scanId}/pdf`);
       if (!res.ok) throw new Error("Failed to download PDF");
       
       const blob = await res.blob();
