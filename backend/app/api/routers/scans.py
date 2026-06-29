@@ -49,7 +49,10 @@ def create_scan(
 
 @router.get("", response_model=list[ScanRead])
 def list_scans(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[Scan]:
-    statement = select(Scan).where(Scan.owner_id == current_user.id).order_by(Scan.created_at.desc())
+    if current_user.role == "admin":
+        statement = select(Scan).order_by(Scan.created_at.desc())
+    else:
+        statement = select(Scan).where(Scan.owner_id == current_user.id).order_by(Scan.created_at.desc())
     return list(db.scalars(statement).all())
 
 

@@ -4,6 +4,7 @@ import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
+import { Targets } from "./pages/Targets";
 import { Auth } from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -24,6 +25,7 @@ function AppRoutes() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/targets" element={<Targets />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<Dashboard />} />

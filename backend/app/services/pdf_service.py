@@ -29,12 +29,37 @@ def add_header_footer(canvas, doc):
     canvas.line(inch, 10.5 * inch, 7.5 * inch, 10.5 * inch)
     canvas.restoreState()
 
+def generate_ai_summary(scan: Scan) -> str:
+    critical_count = sum(1 for f in scan.findings if f.severity == "critical")
+    high_count = sum(1 for f in scan.findings if f.severity == "high")
+    total_findings = len(scan.findings)
+    
+    if total_findings == 0:
+        return f"AegisSec's AI analysis of the '{scan.name}' assessment reveals a strong security posture with no immediate vulnerabilities detected on the primary attack surface. Continuous monitoring is recommended."
+        
+    summary = f"AegisSec's AI engine has analyzed {total_findings} discovered vulnerabilities across the '{scan.name}' assessment. "
+    
+    if scan.risk_score > 75:
+        summary += f"The overall risk posture is critical (Score: {scan.risk_score}/100), primarily driven by {critical_count} critical and {high_count} high-severity findings. "
+        summary += "Immediate remediation is required to prevent potential exploitation. "
+    elif scan.risk_score > 40:
+        summary += f"The overall risk posture is moderate (Score: {scan.risk_score}/100). While no imminent critical threats dominate the landscape, {high_count} high-severity weaknesses were identified that require scheduled patching. "
+    else:
+        summary += f"The overall risk posture is low (Score: {scan.risk_score}/100). The attack surface is well-defended, though minor security hygiene improvements are recommended based on the findings. "
+        
+    mitre_tags = list(set([f.mitre_attack for f in scan.findings if f.mitre_attack]))
+    if mitre_tags:
+        summary += f"Threat intelligence mapping indicates exposure to several MITRE ATT&CK techniques, notably: {', '.join(mitre_tags[:3])}. "
+        
+    summary += "Prioritize remediation efforts based on the CVSS 3.1 scoring and Evidence logs detailed below."
+    return summary
+
 def generate_pdf_report(scan: Scan) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72
+        rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
     )
     
     styles = getSampleStyleSheet()
@@ -51,6 +76,7 @@ def generate_pdf_report(scan: Scan) -> bytes:
     styles.add(ParagraphStyle(name='SubtitlePage', parent=styles['Normal'], fontSize=16, textColor=colors.gray, alignment=1, spaceAfter=40))
     styles.add(ParagraphStyle(name='SectionHeader', parent=styles['Heading2'], fontSize=18, textColor=brand_color, spaceBefore=20, spaceAfter=10))
     styles.add(ParagraphStyle(name='Metadata', parent=styles['Normal'], fontSize=11, leading=16))
+    styles.add(ParagraphStyle(name='AISummary', parent=styles['Normal'], fontSize=11, leading=16, textColor=colors.HexColor("#334155"), spaceAfter=20, backColor=colors.HexColor("#f8fafc"), borderPadding=10, borderColor=colors.HexColor("#cbd5e1"), borderWidth=1))
     styles.add(ParagraphStyle(name='FindingTitle', parent=styles['Heading3'], fontSize=14, textColor=brand_color, spaceBefore=15, spaceAfter=6))
     styles.add(ParagraphStyle(name='FindingLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10))
     styles.add(ParagraphStyle(name='FindingValue', parent=styles['Normal'], fontSize=10, leading=14))
@@ -92,6 +118,11 @@ def generate_pdf_report(scan: Scan) -> bytes:
     
     # --- EXECUTIVE DASHBOARD ---
     Story.append(Paragraph("Executive Dashboard", styles['SectionHeader']))
+    
+    ai_summary = generate_ai_summary(scan)
+    Story.append(Paragraph(f"<b>AI Executive Summary:</b><br/>{ai_summary}", styles['AISummary']))
+    Story.append(Spacer(1, 15))
+    
     Story.append(Paragraph(f"The automated assessment of <b>{target_val}</b> concluded with an overall Risk Score of <b>{scan.risk_score}/100</b>.", styles['Normal']))
     Story.append(Spacer(1, 20))
     

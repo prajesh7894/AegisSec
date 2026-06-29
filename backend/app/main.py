@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import auth, dashboard, logs, profile, reports, scans, settings as settings_router, users
+from app.api.routers import auth, dashboard, logs, profile, reports, scans, settings as settings_router, users, targets as targets_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.rate_limit import InMemoryRateLimitMiddleware
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(users.router, prefix="/api/users", tags=["users"])
+    app.include_router(targets_router.router, prefix="/api/targets", tags=["targets"])
     app.include_router(scans.router, prefix="/api/scans", tags=["scans"])
     app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
     app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
