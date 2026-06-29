@@ -1,6 +1,6 @@
 export const API_URL =
   import.meta.env.VITE_API_URL ||
-  "aegissec-production.up.railway.app";
+  "https://aegissec-production.up.railway.app";
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("aegis_access_token");
