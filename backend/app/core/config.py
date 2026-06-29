@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 30
     refresh_token_days: int = 7
-    cors_origins_raw: str = "*"
+    cors_origins_raw: str = "http://localhost:5173,http://localhost:3000,https://aegis-sec-ten.vercel.app"
     rate_limit_per_minute: int = 120
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
