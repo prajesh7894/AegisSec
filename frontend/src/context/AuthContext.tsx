@@ -6,6 +6,7 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  user?: any;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);

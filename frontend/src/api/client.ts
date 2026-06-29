@@ -1,6 +1,6 @@
 export const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-function getAuthHeaders() {
+function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("aegis_access_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

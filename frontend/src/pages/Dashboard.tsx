@@ -84,7 +84,9 @@ export function Dashboard() {
   ];
 
   const hasFindings = pieData.reduce((acc, curr) => acc + curr.value, 0) > 0;
-  const trendData = stats?.historical_trend || [];
+  // historical_trend may not be present on the stats type from the hook
+  // coerce to any to avoid TS error and default to empty array when missing
+  const trendData = (stats as any)?.historical_trend || [];
 
   return (
     <div className="space-y-6 p-8">
