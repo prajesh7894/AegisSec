@@ -59,7 +59,7 @@ def generate_pdf_report(scan: Scan) -> bytes:
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
+        rightMargin=50, leftMargin=50, topMargin=72, bottomMargin=72
     )
     
     styles = getSampleStyleSheet()
